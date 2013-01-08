@@ -34,9 +34,8 @@ var SectorEditor = new Class({
 		this.tooltipLayer.add(this.tooltip);
 
 		var imageObj = new Image();
-		var that = this;
-		imageObj.onload = function() {
-			that.sectorsImage = new Kinetic.Image({
+		imageObj.onload = $.proxy(function() {
+			this.sectorsImage = new Kinetic.Image({
 				  x: 0, 
 				  y: 0, 
 				  image: imageObj,
@@ -44,23 +43,26 @@ var SectorEditor = new Class({
 				  height: 533,
 				  name: 'sectorsImage'
 			});
-			that.sectorsImage.moveToBottom();
-			that.shapesLayer.add(that.sectorsImage);
+			this.sectorsImage.moveToBottom();
+			this.shapesLayer.add(this.sectorsImage);
 			
 			if($('#enableMarks').is(':checked')){
-				that.sectorsImage.on('click', function(){
-					that.shapeClick();
-				});
+				var clickHandler = function(){
+					this.shapeClick();
+				};
+				this.sectorsImage.on('click', $.proxy(clickHandler, this));
 
-				that.sectorsImage.on('mousemove', function(evt) {
-					that.shapeMouseMove();
-			    });
+				var mouseMoveHandler =  function(evt) {
+					this.shapeMouseMove();
+			    };
+				this.sectorsImage.on('mousemove', $.proxy(mouseMoveHandler, this));
 			}
 			
-			that.stage.add(that.shapesLayer);
-			that.stage.add(that.tooltipLayer);
-			that.stage.add(that.scratchLayer);
-		}
+			this.stage.add(this.shapesLayer);
+			this.stage.add(this.tooltipLayer);
+			this.stage.add(this.scratchLayer);
+		}, 
+		this);
 
 		imageObj.src = imagePath;
     },
@@ -128,64 +130,75 @@ var SectorEditor = new Class({
 		    { 
 		      text: "Salvar", 
 		      click: function() { 
-		      		var attrs = { 
-		      			sectionName: $(that.sectorFormInfo.nameFieldId).val(),
-		      			id: $(that.sectorFormInfo.idFieldId).val(),
-		      			fill: $(that.sectorFormInfo.colorFieldId).val()};
-		      		console.log(sectorShape);
-		      		console.log(attrs);
-		      		sectorShape.setAttrs(attrs);
-		      		that.bindShapeEvents(sectorShape);
-		      		that.removeMarks();
+			      		var attrs = { 
+			      			sectionName: $(that.sectorFormInfo.nameFieldId).val(),
+			      			id: $(that.sectorFormInfo.idFieldId).val(),
+			      			fill: $(that.sectorFormInfo.colorFieldId).val() 
+			      		};
+			      		console.log(sectorShape);
+			      		console.log(attrs);
+			      		sectorShape.setAttrs(attrs);
+			      		that.bindShapeEvents(sectorShape);
+			      		that.removeMarks();
 
-		      		that.clearSectionFormFields();
-		      		$(this).dialog("close");
-		       } 
+			      		that.clearSectionFormFields();
+			      		$(this).dialog("close");
+			         } 
 		    },
 		    { 
 		      text: "Remover", 
 		      click: function() { 
-		      		sectorShape.remove();
-		      		that.removeMarks();
+			      		sectorShape.remove();
+			      		that.removeMarks();
 
-		      		that.clearSectionFormFields();
-		      		$(this).dialog("close");
-		       } 
+			      		that.clearSectionFormFields();
+			      		$(this).dialog("close");
+			         } 
 		    }
 		];
 
-	 	$(that.sectorFormInfo.nameFieldId).val(sectorShape.attrs.sectionName);
-		$(that.sectorFormInfo.idFieldId).val(sectorShape.attrs.id);
-		$(that.sectorFormInfo.colorFieldId).val(sectorShape.attrs.fill);
+	 	$(this.sectorFormInfo.nameFieldId).val(sectorShape.attrs.sectionName);
+		$(this.sectorFormInfo.idFieldId).val(sectorShape.attrs.id);
+		$(this.sectorFormInfo.colorFieldId).val(sectorShape.attrs.fill);
 
 		$(this.sectorFormInfo.formId).dialog('option', 'buttons', formButtons);
     	$(this.sectorFormInfo.formId).dialog('open');
     },
     bindShapeEvents: function(shape){
-    	var that = this;
-    	shape.on('mouseover', function(evt) {
-			var shape = evt.shape;
-			shape.setOpacity(0.7);
-			that.shapesLayer.draw();
-	    });
-	    shape.on('mouseout', function(evt) {
-	        var shape = evt.shape;
-	        shape.setOpacity(1);
-	        that.shapesLayer.draw();
-	        that.tooltip.hide();
-	        that.tooltipLayer.draw();
-	    });
-	    shape.on('mousemove', function(evt) {
-	        var shape = evt.shape;
-	        var mousePos = that.stage.getMousePosition();
-	        var x = mousePos.x + 15;
-	        var y = mousePos.y + 20;
-	        that.drawTooltip(that.tooltip, x, y, shape.attrs.sectionName);
-	    });
-	    shape.on('click', function(evt) {
-	    	var shape = evt.shape;
-	    	that.showSectorForm(shape);
-	    });
+    	shape.on('mouseover', 
+	    		$.proxy(function(evt) {
+							var shape = evt.shape;
+							shape.setOpacity(0.7);
+							this.shapesLayer.draw();
+					    }, this)
+    			);
+
+	    shape.on('mouseout', 
+		    	$.proxy(function(evt) {
+					        var shape = evt.shape;
+					        shape.setOpacity(1);
+					        this.shapesLayer.draw();
+					        this.tooltip.hide();
+					        this.tooltipLayer.draw();
+					    }, this)
+		    	);
+
+	    shape.on('mousemove',
+			    $.proxy(function(evt) {
+					        var shape = evt.shape;
+					        var mousePos = this.stage.getMousePosition();
+					        var x = mousePos.x + 15;
+					        var y = mousePos.y + 20;
+					        this.drawTooltip(this.tooltip, x, y, shape.attrs.sectionName);
+					    }, this)
+			    );
+
+	    shape.on('click',
+			     $.proxy(function(evt) {
+					    	var shape = evt.shape;
+					    	this.showSectorForm(shape);
+					    }, this)
+			     );
     },
     clearSectionFormFields: function(){
     	$(this.sectorFormInfo.nameFieldId).val('');
@@ -205,13 +218,15 @@ var SectorEditor = new Class({
     setMarks: function(enable){
     	if(enable)
 		{
-			var that = this;
-			this.sectorsImage.on('click', function(){
-				that.shapeClick();
-			});
-			this.sectorsImage.on('mousemove', function(){
-				that.shapeMouseMove();
-			});
+			this.sectorsImage.on('click', 
+								$.proxy(function(){
+											shapeClick();
+										},this)
+			);
+			this.sectorsImage.on('mousemove', $.proxy(function(){
+															shapeMouseMove();
+														}, this)
+			);
 		}
 		else
 		{
@@ -248,7 +263,6 @@ var SectorEditor = new Class({
 			name: 'pt'
 		});
 
-		//drawLine();
 		this.lastPoint = { x: x, y: y };
 		if(this.stage.get('.pt').length > 0){
 
@@ -273,7 +287,7 @@ var SectorEditor = new Class({
 		this.shapesLayer.draw();
     },
     shapeMouseMove: function(){
-    	if(typeof this.lastPoint == 'undefined' || secEditor.shapesLayer.get('.pt').length == 0)
+    	if(typeof this.lastPoint == 'undefined' || this.shapesLayer.get('.pt').length == 0)
 			return;
 
     	this.scratchLayer.get('.ruleLine').each(function(){
